@@ -1,31 +1,49 @@
 services:
-  react-agent:
-    image: ghcr.io/astral-sh/uv:python3.11-bookworm-slim
+
+  # ── react-agent dev ──────────────────────────────────────────────────────────
+  react-agent-dev:
+    profiles: [dev]
+    build:
+      context: ./react-agent
+      target: dev
     working_dir: /app
     volumes:
       - ./react-agent:/app
+      - ./react-agent/.venv:/app/.venv
     environment:
       - UV_PROJECT_ENVIRONMENT=/app/.venv
     ports:
       - "2024:2024"
     env_file:
       - ./.env
-    command:
-      - sh
-      - -c
-      - |
-        apt-get install -y make &&
-        uv sync --group dev &&
-        make test &&
-        uv run langgraph dev --port 2024 --no-browser
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:2024/ok')"]
       interval: 15s
       timeout: 5s
       retries: 10
 
-  agent-chat-ui:
-    image: node:20-slim
+  # ── react-agent prod ─────────────────────────────────────────────────────────
+  react-agent-prod:
+    profiles: [prod]
+    build:
+      context: ./react-agent
+      target: prod
+    ports:
+      - "2024:2024"
+    env_file:
+      - ./.env
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:2024/ok')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  # ── agent-chat-ui dev ─────────────────────────────────────────────────────────
+  agent-chat-ui-dev:
+    profiles: [dev]
+    build:
+      context: ./agent-chat-ui
+      target: dev
     working_dir: /app
     volumes:
       - ./agent-chat-ui:/app
@@ -33,8 +51,20 @@ services:
       - "3000:3000"
     env_file:
       - ./.env
-    command: >
-      sh -c "npm install -g pnpm && pnpm install && pnpm build && pnpm start"
     depends_on:
-      react-agent:
+      react-agent-dev:
+        condition: service_healthy
+
+  # ── agent-chat-ui prod ────────────────────────────────────────────────────────
+  agent-chat-ui-prod:
+    profiles: [prod]
+    build:
+      context: ./agent-chat-ui
+      target: prod
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./.env
+    depends_on:
+      react-agent-prod:
         condition: service_healthy
