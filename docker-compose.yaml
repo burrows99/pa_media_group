@@ -10,12 +10,18 @@ services:
     volumes:
       - ./react-agent:/app
       - ./react-agent/.venv:/app/.venv
+      - ./cognee/data:/root/.cognee
     environment:
       - UV_PROJECT_ENVIRONMENT=/app/.venv
     ports:
       - "2024:2024"
     env_file:
       - ./.env
+      - ./.env.cognee
+    networks:
+      - elastic-net
+    depends_on:
+      - cognee
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:2024/ok')"]
       interval: 15s
@@ -28,10 +34,17 @@ services:
     build:
       context: ./react-agent
       target: prod
+    volumes:
+      - ./cognee/data:/root/.cognee
     ports:
       - "2024:2024"
     env_file:
       - ./.env
+      - ./.env.cognee
+    networks:
+      - elastic-net
+    depends_on:
+      - cognee
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:2024/ok')"]
       interval: 15s
@@ -68,3 +81,24 @@ services:
     depends_on:
       react-agent-prod:
         condition: service_healthy
+
+  # Cognee: AI knowledge graph system for semantic memory and retrieval
+  # Official docs: https://github.com/topoteretes/cognee
+  cognee:
+    profiles: [dev, prod]
+    image: cognee/cognee:main
+    container_name: cognee
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist all Cognee data (SQLite, LanceDB, Kuzu graph DB) to host
+      - ./cognee/data:/root/.cognee
+    env_file:
+      - .env.cognee
+    networks:
+      - elastic-net
+    restart: unless-stopped
+
+networks:
+  elastic-net:
+    driver: bridge

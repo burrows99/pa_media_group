@@ -13,8 +13,12 @@ from langgraph.runtime import Runtime
 
 from react_agent.context import Context
 from react_agent.state import InputState, State
-from react_agent.tools import TOOLS
+from react_agent.tools import TOOLS, get_cognee_tools
 from react_agent.utils import load_chat_model
+
+# Add Cognee memory tools (add + search) via the official integration.
+# See: https://docs.cognee.ai/integrations/langgraph-integration
+TOOLS.extend(get_cognee_tools())
 
 # Define the function that calls the model
 
