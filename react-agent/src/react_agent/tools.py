@@ -10,8 +10,12 @@ import asyncio
 import os
 from typing import Any, Callable, List
 
-from langchain_community.tools import DuckDuckGoSearchRun  # ty:ignore[unresolved-import]
-from langchain_community.utilities import DuckDuckGoSearchAPIWrapper  # ty:ignore[unresolved-import]
+from langchain_community.tools import (  # ty:ignore[unresolved-import]
+    DuckDuckGoSearchRun,
+)
+from langchain_community.utilities import (  # ty:ignore[unresolved-import]
+    DuckDuckGoSearchAPIWrapper,
+)
 from langgraph.runtime import get_runtime  # ty:ignore[unresolved-import]
 
 from react_agent.context import Context
