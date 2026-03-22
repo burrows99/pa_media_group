@@ -6,6 +6,7 @@ These tools are intended as free examples to get started. For production use,
 consider implementing more robust and specialized tools tailored to your needs.
 """
 
+import os
 from typing import Any, Callable, List, cast
 
 from langchain_tavily import TavilySearch  # ty:ignore[unresolved-import]
@@ -48,4 +49,38 @@ def get_cognee_tools(session_id: str | None = None) -> List[Callable[..., Any]]:
     return [add_tool, search_tool]
 
 
-TOOLS: List[Callable[..., Any]] = [search]
+def cognee_visualization_links() -> str:
+    """Fetch all Cognee datasets and return interactive HTML visualisation links for each.
+
+    Calls the Cognee REST API to list all datasets, then builds a direct visualise URL
+    for each one using the official GET /api/v1/visualize?dataset_id=<id> endpoint,
+    which returns an interactive HTML graph of that dataset's knowledge graph.
+    """
+    import httpx
+
+    cognee_api = os.environ.get("COGNEE_API_URL", "http://localhost:8000")
+
+    try:
+        resp = httpx.get(f"{cognee_api}/api/v1/datasets", timeout=10)
+        resp.raise_for_status()
+        datasets = resp.json()
+    except Exception as e:
+        return f"Failed to fetch datasets from Cognee API at {cognee_api}: {e}"
+
+    if not datasets:
+        return (
+            f"No datasets found in Cognee (API: {cognee_api}).\n"
+            "Add some data first using the `add_tool`."
+        )
+
+    lines = ["Here are the interactive visualisation links for your Cognee datasets:\n"]
+    for ds in datasets:
+        name = ds.get("name", "unnamed")
+        ds_id = ds.get("id", "")
+        url = f"{cognee_api}/api/v1/visualize?dataset_id={ds_id}"
+        lines.append(f"**{name}** (`{ds_id}`)\n[{url}]({url})\n")
+
+    return "\n".join(lines)
+
+
+TOOLS: List[Callable[..., Any]] = [search, cognee_visualization_links]

@@ -19,6 +19,7 @@ dependencies = [
     "langchain-tavily>=0.1",
     "cognee-integration-langgraph>=0.1.7",
     "transformers>=4.40.0",
+    "httpx>=0.27.0",
 ]
 
 
