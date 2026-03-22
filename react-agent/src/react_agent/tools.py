@@ -71,6 +71,13 @@ def cognee_visualization_links() -> str:
 
     try:
         resp = httpx.get(f"{internal_api}/api/v1/datasets", timeout=10)
+        if resp.status_code == 403:
+            return (
+                "❌ <b>Permission Denied (403)</b>: Your user does not have permission to view datasets.\n"
+                "If you are running locally and want to disable access control, set the environment variable <code>ENABLE_BACKEND_ACCESS_CONTROL=false</code> in your docker-compose or environment, then restart Cognee.\n"
+                "Otherwise, ensure your user has the correct permissions.\n"
+                f"API URL: {internal_api}/api/v1/datasets"
+            )
         resp.raise_for_status()
         datasets = resp.json()
     except Exception as e:
@@ -87,8 +94,10 @@ def cognee_visualization_links() -> str:
         name = ds.get("name", "unnamed")
         ds_id = ds.get("id", "")
         url = f"{browser_api}/api/v1/visualize?dataset_id={ds_id}"
-        lines.append(f"**{name}** (`{ds_id}`)\n[{url}]({url})\n")
+        # Provide both Markdown and plain link for clarity
+        lines.append(f"**{name}** (`{ds_id}`)\n<a href=\"{url}\" target=\"_blank\">Open Visualization</a>\n{url}\n")
 
+    lines.append("\nIf you see a permission error, check your user permissions or disable access control as described above.")
     return "\n".join(lines)
 
 
