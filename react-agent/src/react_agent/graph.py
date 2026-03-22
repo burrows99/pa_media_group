@@ -6,7 +6,7 @@ Works with a chat model with tool calling support.
 from datetime import UTC, datetime
 from typing import Dict, List, Literal, cast
 
-from langchain_core.messages import AIMessage  # ty:ignore[unresolved-import]
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage  # ty:ignore[unresolved-import]
 from langgraph.graph import StateGraph  # ty:ignore[unresolved-import]
 from langgraph.prebuilt import ToolNode  # ty:ignore[unresolved-import]
 from langgraph.runtime import Runtime  # ty:ignore[unresolved-import]
@@ -14,13 +14,49 @@ from langgraph.runtime import Runtime  # ty:ignore[unresolved-import]
 from react_agent.context import Context
 from react_agent.state import InputState, State
 from react_agent.tools import TOOLS, get_cognee_tools
-from react_agent.utils import load_chat_model
+from react_agent.utils import load_chat_model, get_message_text
 
 # Add Cognee memory tools (add + search) via the official integration.
 # See: https://docs.cognee.ai/integrations/langgraph-integration
 TOOLS.extend(get_cognee_tools())
 
 # Define the function that calls the model
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+async def retrieve_context(
+    state: State, runtime: Runtime[Context]
+) -> dict:
+    """Retrieve context using Cognee search tool before calling the model."""
+    logger.info("--- 🔍 RETRIEVING CONTEXT ---")
+    if not state.messages:
+        logger.info("No messages in state, skipping retrieval.")
+        return {}
+    
+    last_message = state.messages[-1]
+    
+    # Only retrieve if the last message is from a user (HumanMessage)
+    if not isinstance(last_message, HumanMessage):
+        logger.info("Last message is not from user. Skipping retrieval.")
+        return {}
+
+    query = get_message_text(last_message)
+    logger.info(f"User query: '{query}'")
+    
+    # get_cognee_tools returns [add_tool, search_tool]
+    tools = get_cognee_tools()
+    search_tool = tools[1]
+    
+    try:
+        logger.info("Calling Cognee search tool...")
+        context = await search_tool.ainvoke({"query_text": query})
+        logger.info(f"✅ Successfully retrieved context:\n{context}\n")
+        return {"retrieved_context": str(context)}
+    except Exception as e:
+        logger.error(f"❌ Context retrieval failed: {e}")
+        return {"retrieved_context": ""}
 
 
 async def call_model(
@@ -44,6 +80,9 @@ async def call_model(
     system_message = runtime.context.system_prompt.format(
         system_time=datetime.now(tz=UTC).isoformat()
     )
+
+    if getattr(state, "retrieved_context", ""):
+        system_message += f"\n\nRelevant Context from long-term memory:\n{state.retrieved_context}"
 
     # Get the model's response
     response = cast( # type: ignore[redundant-cast]
@@ -72,13 +111,15 @@ async def call_model(
 
 builder = StateGraph(State, input_schema=InputState, context_schema=Context)
 
-# Define the two nodes we will cycle between
+# Define the nodes we will cycle between
+builder.add_node(retrieve_context)
 builder.add_node(call_model)
 builder.add_node("tools", ToolNode(TOOLS))
 
-# Set the entrypoint as `call_model`
+# Set the entrypoint as `retrieve_context`
 # This means that this node is the first one called
-builder.add_edge("__start__", "call_model")
+builder.add_edge("__start__", "retrieve_context")
+builder.add_edge("retrieve_context", "call_model")
 
 
 def route_model_output(state: State) -> Literal["__end__", "tools"]:

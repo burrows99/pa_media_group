@@ -53,6 +53,11 @@ class State(InputState):
     It is set to 'True' when the step count reaches recursion_limit - 1.
     """
 
+    retrieved_context: str = field(default="")
+    """
+    The context retrieved by the retrieval node, to be injected into the system prompt.
+    """
+
     # Additional attributes can be added here as needed.
     # Common examples include:
     # retrieved_documents: List[Document] = field(default_factory=list)
