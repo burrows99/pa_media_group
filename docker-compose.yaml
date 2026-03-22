@@ -10,7 +10,8 @@ services:
     volumes:
       - ./react-agent:/app
       - ./react-agent/.venv:/app/.venv
-      - ./cognee/data:/root/.cognee
+      # Give react-agent its own isolated database directory to prevent Kuzu lock collisions
+      - ./react-agent/cognee_data:/root/.cognee
     environment:
       - UV_PROJECT_ENVIRONMENT=/app/.venv
     ports:
@@ -35,7 +36,8 @@ services:
       context: ./react-agent
       target: prod
     volumes:
-      - ./cognee/data:/root/.cognee
+      # Give react-agent its own isolated database directory
+      - ./react-agent/cognee_data:/root/.cognee
     ports:
       - "2024:2024"
     env_file:
