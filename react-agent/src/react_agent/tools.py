@@ -58,18 +58,20 @@ def cognee_visualization_links() -> str:
     """
     import httpx
 
-    cognee_api = os.environ.get("COGNEE_API_URL", "http://localhost:8000")
+    # Internal URL for API calls (container-to-container), browser URL for links shown to user
+    internal_api = os.environ.get("COGNEE_API_URL", "http://cognee:8000")
+    browser_api = os.environ.get("COGNEE_BROWSER_URL", "http://localhost:8000")
 
     try:
-        resp = httpx.get(f"{cognee_api}/api/v1/datasets", timeout=10)
+        resp = httpx.get(f"{internal_api}/api/v1/datasets", timeout=10)
         resp.raise_for_status()
         datasets = resp.json()
     except Exception as e:
-        return f"Failed to fetch datasets from Cognee API at {cognee_api}: {e}"
+        return f"Failed to fetch datasets from Cognee API at {internal_api}: {e}"
 
     if not datasets:
         return (
-            f"No datasets found in Cognee (API: {cognee_api}).\n"
+            "No datasets found in Cognee.\n"
             "Add some data first using the `add_tool`."
         )
 
@@ -77,7 +79,7 @@ def cognee_visualization_links() -> str:
     for ds in datasets:
         name = ds.get("name", "unnamed")
         ds_id = ds.get("id", "")
-        url = f"{cognee_api}/api/v1/visualize?dataset_id={ds_id}"
+        url = f"{browser_api}/api/v1/visualize?dataset_id={ds_id}"
         lines.append(f"**{name}** (`{ds_id}`)\n[{url}]({url})\n")
 
     return "\n".join(lines)
