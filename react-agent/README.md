@@ -33,7 +33,7 @@ cp .env.example .env
 
 2. Define required API keys in your `.env` file.
 
-The primary [search tool](./src/react_agent/tools.py) [^1] used is [Tavily](https://tavily.com/). Create an API key [here](https://app.tavily.com/sign-in).
+The primary [search tool](./src/react_agent/tools.py) [^1] uses [DuckDuckGo](https://duckduckgo.com/) — no API key required.
 
 ### Setup Model
 

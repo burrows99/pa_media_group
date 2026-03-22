@@ -1,30 +1,33 @@
 """This module provides example tools for web scraping and search functionality.
 
-It includes a basic Tavily search function (as an example)
+It includes a DuckDuckGo search function (no API key required).
 
 These tools are intended as free examples to get started. For production use,
 consider implementing more robust and specialized tools tailored to your needs.
 """
 
+import asyncio
 import os
-from typing import Any, Callable, List, cast
+from typing import Any, Callable, List
 
-from langchain_tavily import TavilySearch  # ty:ignore[unresolved-import]
+from langchain_community.tools import DuckDuckGoSearchRun  # ty:ignore[unresolved-import]
+from langchain_community.utilities import DuckDuckGoSearchAPIWrapper  # ty:ignore[unresolved-import]
 from langgraph.runtime import get_runtime  # ty:ignore[unresolved-import]
 
 from react_agent.context import Context
 
 
-async def search(query: str) -> dict[str, Any] | None:
+async def search(query: str) -> str:
     """Search for general web results.
 
-    This function performs a search using the Tavily search engine, which is designed
-    to provide comprehensive, accurate, and trusted results. It's particularly useful
+    This function performs a search using DuckDuckGo, which requires no API key
+    and provides comprehensive, free web search results. It's particularly useful
     for answering questions about current events.
     """
     runtime = get_runtime(Context)
-    wrapped = TavilySearch(max_results=runtime.context.max_search_results)
-    return cast(dict[str, Any], await wrapped.ainvoke({"query": query}))
+    wrapper = DuckDuckGoSearchAPIWrapper(max_results=runtime.context.max_search_results)
+    tool = DuckDuckGoSearchRun(api_wrapper=wrapper)
+    return await asyncio.get_event_loop().run_in_executor(None, tool.run, query)
 
 
 def get_cognee_tools(session_id: str | None = None) -> List[Callable[..., Any]]:

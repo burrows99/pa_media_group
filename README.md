@@ -29,7 +29,6 @@ Edit `.env` and set the following:
 | `ANTHROPIC_API_KEY` | One of these | Anthropic Claude API key |
 | `OPENAI_API_KEY` | One of these | OpenAI API key |
 | `FIREWORKS_API_KEY` | One of these | Fireworks AI API key |
-| `TAVILY_API_KEY` | Yes | Search tool used by the agent ([get one here](https://app.tavily.com)) |
 | `LANGSMITH_API_KEY` | Optional | For LangSmith tracing ([get one here](https://smith.langchain.com)) |
 | `MODEL` | Optional | Model to use, e.g. `ollama/gpt-oss:120b-cloud` |
 | `OLLAMA_BASE_URL` | If using Ollama | Defaults to `http://host.docker.internal:11434` |
