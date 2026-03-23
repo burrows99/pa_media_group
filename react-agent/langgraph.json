@@ -2,7 +2,8 @@
   "$schema": "https://langgra.ph/schema.json",
   "dependencies": ["."],
   "graphs": {
-    "agent": "./src/react_agent/graph.py:graph"
+    "agent": "./src/react_agent/graph.py:graph",
+    "mcp_tools": "./src/react_agent/graph.py:mcp_graph"
   },
   "env": ".env"
 }

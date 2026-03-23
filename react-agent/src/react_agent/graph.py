@@ -15,6 +15,7 @@ from react_agent.context import Context
 from react_agent.state import InputState, State
 from react_agent.tools import TOOLS, get_cognee_tools
 from react_agent.utils import load_chat_model, get_message_text
+from react_agent.mcp import mcp_manager
 
 # Add Cognee memory tools (add + search) via the official integration.
 # See: https://docs.cognee.ai/integrations/langgraph-integration
@@ -59,6 +60,15 @@ async def retrieve_context(
         return {"retrieved_context": ""}
 
 
+async def get_all_tools(runtime: Runtime[Context]):
+    """Dynamically aggregate base and MCP tools."""
+    mcp_tools = await mcp_manager.get_tools(
+        runtime.context.mcp_servers, 
+        runtime.context.mcp_disabled_tools
+    )
+    return TOOLS + mcp_tools
+
+
 async def call_model(
     state: State, runtime: Runtime[Context]
 ) -> Dict[str, List[AIMessage]]:
@@ -71,10 +81,11 @@ async def call_model(
         config (RunnableConfig): Configuration for the model run.
 
     Returns:
-        dict: A dictionary containing the model's response message.
     """
+    all_tools = await get_all_tools(runtime)
+
     # Initialize the model with tool binding. Change the model or add more tools here.
-    model = load_chat_model(runtime.context.model, runtime.context.ollama_base_url).bind_tools(TOOLS)
+    model = load_chat_model(runtime.context.model, runtime.context.ollama_base_url).bind_tools(all_tools)
 
     # Format the system prompt. Customize this to change the agent's behavior.
     system_message = runtime.context.system_prompt.format(
@@ -114,7 +125,13 @@ builder = StateGraph(State, input_schema=InputState, context_schema=Context)
 # Define the nodes we will cycle between
 builder.add_node(retrieve_context)
 builder.add_node(call_model)
-builder.add_node("tools", ToolNode(TOOLS))
+
+async def execute_tools(state: State, runtime: Runtime[Context]):
+    all_tools = await get_all_tools(runtime)
+    node = ToolNode(all_tools)
+    return await node.ainvoke(state)
+
+builder.add_node("tools", execute_tools)
 
 # Set the entrypoint as `retrieve_context`
 # This means that this node is the first one called
@@ -159,3 +176,25 @@ builder.add_edge("tools", "call_model")
 
 # Compile the builder into an executable graph
 graph = builder.compile(name="ReAct Agent")
+
+# ----------------------------------------------------------------------
+# Secondary Graph Definition: MCP UI Extraction Endpoint
+# ----------------------------------------------------------------------
+from typing import Any
+from typing_extensions import TypedDict
+
+class MCPState(TypedDict):
+    mcp_servers_config: dict[str, Any]
+    tools: list[dict[str, Any]]
+
+async def get_tools_node(state: MCPState):
+    config = state.get("mcp_servers_config", {})
+    tools = await mcp_manager.get_tools(config)
+    return {"tools": [{"name": t.name, "description": t.description} for t in tools]}
+
+mcp_builder = StateGraph(MCPState)
+mcp_builder.add_node("get_tools", get_tools_node)
+mcp_builder.add_edge("__start__", "get_tools")
+mcp_builder.add_edge("get_tools", "__end__")
+mcp_graph = mcp_builder.compile(name="MCP UI Extractor")
+

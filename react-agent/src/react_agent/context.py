@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field, fields
-from typing import Annotated
+from typing import Annotated, Any, Dict
 
 from . import prompts
 
@@ -40,6 +40,20 @@ class Context:
         default=10,
         metadata={
             "description": "The maximum number of search results to return for each search query."
+        },
+    )
+
+    mcp_servers: Dict[str, Any] = field(
+        default_factory=dict,
+        metadata={
+            "description": "Configuration matching the MCP servers to initialize for the agent."
+        },
+    )
+
+    mcp_disabled_tools: Dict[str, Any] = field(
+        default_factory=dict,
+        metadata={
+            "description": "Map of disabled MCP tools."
         },
     )
 

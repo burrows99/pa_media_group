@@ -22,6 +22,8 @@
     "@langchain/core": "^1.1.28",
     "@langchain/langgraph": "^1.0.1",
     "@langchain/langgraph-sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.0.1",
+    "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-avatar": "^1.1.9",
     "@radix-ui/react-dialog": "^1.1.13",
     "@radix-ui/react-label": "^2.1.6",

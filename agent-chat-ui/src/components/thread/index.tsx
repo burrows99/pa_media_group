@@ -45,6 +45,7 @@ import {
   ArtifactTitle,
   useArtifactContext,
 } from "./artifact";
+import { McpPanel } from "./mcp-panel";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -136,6 +137,7 @@ export function Thread() {
     handlePaste,
   } = useFileUpload();
   const [firstTokenReceived, setFirstTokenReceived] = useState(false);
+  const [mcpPanelOpen, setMcpPanelOpen] = useState(false);
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
 
   const stream = useStreamContext();
@@ -214,12 +216,25 @@ export function Thread() {
     const context =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
+    let mcpServersConfig = {};
+    try {
+      const saved = localStorage.getItem("mcp_servers_config");
+      if (saved) mcpServersConfig = JSON.parse(saved).mcpServers || {};
+    } catch (e) {}
+
+    let mcpDisabledTools = {};
+    try {
+      const saved = localStorage.getItem("mcp_disabled_tools");
+      if (saved) mcpDisabledTools = JSON.parse(saved);
+    } catch (e) {}
+
     stream.submit(
       { messages: [...toolMessages, newHumanMessage], context },
       {
         streamMode: ["values"],
         streamSubgraphs: true,
         streamResumable: true,
+        config: { configurable: { mcp_servers: mcpServersConfig, mcp_disabled_tools: mcpDisabledTools } },
         optimisticValues: (prev) => ({
           ...prev,
           context,
@@ -242,11 +257,24 @@ export function Thread() {
     // Do this so the loading state is correct
     prevMessageLength.current = prevMessageLength.current - 1;
     setFirstTokenReceived(false);
+    let mcpServersConfig = {};
+    try {
+      const saved = localStorage.getItem("mcp_servers_config");
+      if (saved) mcpServersConfig = JSON.parse(saved).mcpServers || {};
+    } catch (e) {}
+
+    let mcpDisabledTools = {};
+    try {
+      const saved = localStorage.getItem("mcp_disabled_tools");
+      if (saved) mcpDisabledTools = JSON.parse(saved);
+    } catch (e) {}
+
     stream.submit(undefined, {
       checkpoint: parentCheckpoint,
       streamMode: ["values"],
       streamSubgraphs: true,
       streamResumable: true,
+      config: { configurable: { mcp_servers: mcpServersConfig, mcp_disabled_tools: mcpDisabledTools } },
     });
   };
 
@@ -257,6 +285,7 @@ export function Thread() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
+      <McpPanel open={mcpPanelOpen} onOpenChange={setMcpPanelOpen} />
       <div className="relative hidden lg:flex">
         <motion.div
           className="absolute z-20 h-full overflow-hidden border-r bg-white"
@@ -508,6 +537,16 @@ export function Thread() {
                             Upload PDF or Image
                           </span>
                         </Label>
+                        <button
+                          type="button"
+                          className="flex cursor-pointer items-center gap-2"
+                          onClick={() => setMcpPanelOpen(true)}
+                        >
+                          <PanelRightOpen className="size-5 text-gray-600" />
+                          <span className="text-sm text-gray-600">
+                            MCP Panel
+                          </span>
+                        </button>
                         <input
                           id="file-input"
                           type="file"

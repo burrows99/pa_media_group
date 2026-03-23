@@ -1,7 +1,9 @@
 # ── base: uv + make ──────────────────────────────────────────────────────────
 FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim AS base
 
-RUN apt-get update && apt-get install -y --no-install-recommends make curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends make curl nodejs npm && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . .
